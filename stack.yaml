@@ -1,29 +1,41 @@
-version: "3.8"
+version: '3.8'
 
 services:
 
-  cadvisor:
+  cadvisor: #8080
     image: gcr.io/cadvisor/cadvisor
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:rw
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
-    ports:
-      - "8080:8080"
     deploy:
       mode: global
   
-  postgres-exporter:
+  postgres-exporter: #9187
     image: prometheuscommunity/postgres-exporter
+    secrets:
+      - default_postgres_url  
     environment:
-      DATA_SOURCE_NAME: "postgresql://postgres:postgres@host.docker.internal:5432/?sslmode=disable"
+      - DATA_SOURCE_NAME="postgresql://postgres:postgres@host.docker.internal:5432/?sslmode=disable"
+    # - DATA_SOURCE_NAME=/run/secrets/default_postgres_url
     depends_on:
       - prometheus
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
-  prometheus:
+  redis-exporter: #9121
+    image: oliver006/redis_exporter
+    # secrets:
+    #   - default_redis_url
+    environment: 
+    #   - REDIS_URL=/run/secrets/default_redis_url
+    # command: ["--redis.addr", "$REDIS_URL"]
+    command: ["--redis.addr", "redis://default:password@host.docker.internal:6379/"]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  prometheus: #9090
     image: prom/prometheus:v2.36.2
     user: "472"
     volumes:
@@ -39,7 +51,7 @@ services:
     depends_on:
       - cadvisor
 
-  node-exporter:
+  node-exporter: #9100
     image: quay.io/prometheus/node-exporter:latest
     volumes:
       - /proc:/host/proc:ro
@@ -77,10 +89,9 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
-volumes:
-  prometheus_data:
-      driver: local
-  grafana_data: 
-    driver: local
-  uptime-kuma-data: 
-    driver: local
+# secrets:
+  
+#     default_redis_url:
+#         external: true
+#     default_postgres_url:
+#         external: true
