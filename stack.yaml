@@ -14,8 +14,8 @@ services:
   
   postgres-exporter: #9187
     image: prometheuscommunity/postgres-exporter
-    secrets:
-      - default_postgres_url  
+    #secrets:
+    #  - default_postgres_url  
     environment:
       - DATA_SOURCE_NAME="postgresql://postgres:postgres@host.docker.internal:5432/?sslmode=disable"
     # - DATA_SOURCE_NAME=/run/secrets/default_postgres_url
@@ -28,7 +28,7 @@ services:
     image: oliver006/redis_exporter
     # secrets:
     #   - default_redis_url
-    environment: 
+    #environment: 
     #   - REDIS_URL=/run/secrets/default_redis_url
     # command: ["--redis.addr", "$REDIS_URL"]
     command: ["--redis.addr", "redis://default:password@host.docker.internal:6379/"]
