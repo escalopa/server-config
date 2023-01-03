@@ -2,6 +2,25 @@ version: '3.8'
 
 services:
 
+  loki: #3100
+    image: grafana/loki:2.7.1
+    user: "10001"
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./config/loki/loki-config.yaml:/etc/loki/loki-config.yaml
+    command: -config.file=/etc/loki/loki-config.yaml
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+  
+  promtail:
+    image: grafana/promtail:2.6.1
+    volumes:
+      - ./config/promtail/promtail-config.yaml:/etc/promtail/promtail-config.yaml
+      - /var/log/:/var/log
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/lib/docker/containers:/var/lib/docker/containers
+
   cadvisor: #8080
     image: gcr.io/cadvisor/cadvisor
     volumes:
@@ -14,11 +33,12 @@ services:
   
   postgres-exporter: #9187
     image: prometheuscommunity/postgres-exporter
-    #secrets:
-    #  - default_postgres_url  
+    secrets:
+     - default_postgres_pass  
     environment:
-      - DATA_SOURCE_NAME="postgresql://postgres:postgres@host.docker.internal:5432/?sslmode=disable"
-    # - DATA_SOURCE_NAME=/run/secrets/default_postgres_url
+      - DATA_SOURCE_URI=host.docker.internal
+      - DATA_SOURCE_USER=postgres
+      - DATA_SOURCE_PASS_FILE=/run/secrets/default_postgres_pass
     depends_on:
       - prometheus
     extra_hosts:
@@ -26,13 +46,14 @@ services:
 
   redis-exporter: #9121
     image: oliver006/redis_exporter
-    # secrets:
-    #   - default_redis_url
-    #environment: 
-    #   - REDIS_URL=/run/secrets/default_redis_url
-    # command: ["--redis.addr", "$REDIS_URL"]
+    #secrets:
+    # - default_redis_pass
+    #environment:
+    # - REDIS_USER=default
+    # - REDIS_ADDR=redis://host.docker.internal:6379/
+    # - REDIS_PASSWORD_FILE=/run/secrets/default_redis_pass
     command: ["--redis.addr", "redis://default:password@host.docker.internal:6379/"]
-    extra_hosts:
+    extra_hosts: 
       - "host.docker.internal:host-gateway"
 
   prometheus: #9090
@@ -87,9 +108,8 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
-# secrets:
-  
-#     default_redis_url:
-#         external: true
-#     default_postgres_url:
-#         external: true
+secrets:
+   default_postgres_pass:
+      external: true
+   default_redis_pass:
+      external: true
